@@ -4,7 +4,10 @@ from transformers import BertTokenizer, TFBertModel
 import tensorflow as tf
 from tensorflow.keras.layers import Input, Lambda, Dense
 from tensorflow.keras.models import Model
+from tensorflow.keras.mixed_precision import set_global_policy
 import numpy as np
+
+set_global_policy('mixed_float16')
 
 # Initialize the tokenizer and the BERT model
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
@@ -100,7 +103,7 @@ history = siamese_model.fit(
     Y_train,
     validation_data=([X_val_1, X_val_2], Y_val),
     epochs=10,
-    batch_size=32
+    batch_size=16
 )
 
 # Save the model
