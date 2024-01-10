@@ -68,22 +68,15 @@ def bert_preprocess_query(query):
     )
     return encoded['input_ids'][0]
 
-def compare_queries(query1, query2, model):
-    preprocessed_query1 = bert_preprocess_query(query1)
-    preprocessed_query2 = bert_preprocess_query(query2)
+def combine_question_with_query(question, query):
+    combined_text = question + " " + query  # or any other combination logic you prefer
+    return bert_preprocess_query(combined_text)
 
-    prediction = model.predict([preprocessed_query1[tf.newaxis, :], preprocessed_query2[tf.newaxis, :]])
+def compare_queries(question, query1, query2, model):
+    combined_query1 = combine_question_with_query(question, query1)
+    combined_query2 = combine_question_with_query(question, query2)
+
+    # The model now receives two inputs as expected
+    prediction = model.predict([combined_query1[tf.newaxis, :], combined_query2[tf.newaxis, :]])
     return prediction[0][0]
 
-# Example usage
-query1 = "SELECT * FROM users WHERE age > 30"
-query2 = "SELECT id, name FROM users WHERE age > 30"
-
-similarity_score = compare_queries(query1, query2, siamese_model)
-print(f"Similarity Score: {similarity_score}")
-
-threshold = 0.5  # Adjust the threshold based on your requirements
-if similarity_score >= threshold:
-    print("Queries are likely functionally equivalent.")
-else:
-    print("Queries are likely not functionally equivalent.")

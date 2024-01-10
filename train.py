@@ -1,15 +1,15 @@
 import pandas as pd
+import numpy as np
+import tensorflow as tf
 from sklearn.model_selection import train_test_split
 from transformers import BertTokenizer, TFBertModel
-import tensorflow as tf
 from tensorflow.keras.layers import Input, Lambda, Dense
 from tensorflow.keras.models import Model
 from tensorflow.keras.mixed_precision import set_global_policy
-import numpy as np
 
 set_global_policy('mixed_float16')
 
-# Initialize the tokenizer and the BERT model
+# Initialize tokenizer and BERT model
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 bert_model = TFBertModel.from_pretrained('bert-base-uncased')
 
@@ -24,22 +24,40 @@ def bert_preprocess_query(query):
     )
     return encoded['input_ids'][0]
 
-# Load the dataset
-df = pd.read_csv('dataset.csv', delimiter='|', quotechar='"')
+# Dictionary of Questions, Correct Answers and CSV files with incorrect answers
+questions_data = [
+    {
+        "question": "What is the ID, name, and salary of employees with a salary increase?",
+        "correct_answer": "Select ID, Name, salary, ROUND(salary*1.15,0) AS New_Salary From employee;",
+        "csv_file": "data/dataset.csv"
+    },
+    # Add more question data as needed
+]
 
-# Correct query
-correct_query = "Select ID, Name, salary, ROUND(salary*1.15,0) AS New_Salary From employee;"
-preprocessed_correct_query = bert_preprocess_query(correct_query)
-
-# Filter out non-executable queries and prepare data pairs
+# Prepare data pairs
 paired_data = []
 labels = []
-for _, row in df.iterrows():
-    user_query = row['UserQuery']
-    preprocessed_user_query = bert_preprocess_query(user_query)
 
-    paired_data.append((preprocessed_user_query, preprocessed_correct_query))
-    labels.append(0)  # assuming all user queries are incorrect (label them as 0)
+for data in questions_data:
+    correct_query = data["correct_answer"]
+    question = data["question"]
+    csv_file = data["csv_file"]
+
+    df = pd.read_csv(csv_file, delimiter='|', quotechar='"')
+    preprocessed_question = bert_preprocess_query(question)
+    preprocessed_correct_answer = bert_preprocess_query(correct_query)
+
+    # Pair the question with the correct answer
+    paired_data.append((preprocessed_question, preprocessed_correct_answer))
+    labels.append(1)  # 1 for correct pair
+
+    # Pair the question with each incorrect answer
+    for _, row in df.iterrows():
+        user_query = row['UserQuery']
+        preprocessed_user_query = bert_preprocess_query(user_query)
+
+        paired_data.append((preprocessed_question, preprocessed_user_query))
+        labels.append(0)  # 0 for incorrect pair
 
 # Convert to tensors
 query1_tensors = tf.convert_to_tensor([pair[0] for pair in paired_data])

@@ -1,0 +1,5 @@
+1. pip3 install virtualenv
+2. virtualenv env
+3. env\Scripts\activate
+4. pip3 install -r requirements.txt
+5. python3 train.py (Training)
